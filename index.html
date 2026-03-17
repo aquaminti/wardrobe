@@ -1520,7 +1520,7 @@ const SEED_WARDROBE = [
 // Clear old wardrobe data from previous version
 if (!localStorage.getItem('wardrobe_v4')) { localStorage.removeItem('wardrobe_items'); localStorage.setItem('wardrobe_v4','1'); }
 let wardrobe = JSON.parse(localStorage.getItem('wardrobe_items') || 'null') || SEED_WARDROBE.map(i => ({...i}));
-let savedOutfits = [];
+let savedOutfits = JSON.parse(localStorage.getItem('saved_outfits') || '[]');
 let currentOutfit = [];
 let openCategories = new Set();
 let activeFilter = 'all';
@@ -1531,28 +1531,8 @@ let onlyFavourites = false;
 function saveWardrobe() {
   localStorage.setItem('wardrobe_items', JSON.stringify(wardrobe));
 }
-const JSONBIN_ID = '69b996c2aa77b81da9f2c279';
-const JSONBIN_KEY = '$2a$10$B8NJERDAoABF77y12RB4IeSNJp7tPw7znIcSyKlVM2K0qW6lLFJMC';
-
-async function saveSavedOutfits() {
-  await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_ID}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_KEY },
-    body: JSON.stringify({ outfits: savedOutfits })
-  });
-}
-
-async function loadSavedOutfits() {
-  try {
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_ID}/latest`, {
-      headers: { 'X-Master-Key': JSONBIN_KEY }
-    });
-    const data = await res.json();
-    savedOutfits = data.record.outfits || [];
-  } catch(e) {
-    savedOutfits = [];
-  }
-  renderSaved();
+function saveSavedOutfits() {
+  localStorage.setItem('saved_outfits', JSON.stringify(savedOutfits));
 }
 
 // ─────────────────────────────────────────────
@@ -1878,16 +1858,15 @@ function closeSaveModal() {
   document.getElementById('saveModal').classList.remove('open');
 }
 
-async function saveOutfit() {
+function saveOutfit() {
   const name = document.getElementById('outfitNameInput').value.trim();
   if (!name) { document.getElementById('outfitNameInput').focus(); return; }
   const now = new Date();
   const date = now.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
   savedOutfits.unshift({ name, items: [...currentOutfit], date });
+  saveSavedOutfits();
   closeSaveModal();
   renderSaved();
-  showToast('Аутфит сохраняется... 💾');
-  await saveSavedOutfits();
   showToast('Аутфит сохранён! 💾');
 }
 
@@ -1899,10 +1878,10 @@ function loadOutfit(idx) {
   document.querySelector('.main').scrollIntoView({ behavior: 'smooth' });
 }
 
-async function deleteOutfit(idx) {
+function deleteOutfit(idx) {
   savedOutfits.splice(idx, 1);
+  saveSavedOutfits();
   renderSaved();
-  await saveSavedOutfits();
   showToast('Аутфит удалён');
 }
 
@@ -2131,7 +2110,6 @@ document.getElementById('confirmDeleteModal').addEventListener('click', e => {
 // INIT
 // ─────────────────────────────────────────────
 render();
-loadSavedOutfits();
 </script>
 </body>
 </html>
