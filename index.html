@@ -1520,7 +1520,7 @@ const SEED_WARDROBE = [
 // Clear old wardrobe data from previous version
 if (!localStorage.getItem('wardrobe_v4')) { localStorage.removeItem('wardrobe_items'); localStorage.setItem('wardrobe_v4','1'); }
 let wardrobe = JSON.parse(localStorage.getItem('wardrobe_items') || 'null') || SEED_WARDROBE.map(i => ({...i}));
-let savedOutfits = JSON.parse(localStorage.getItem('saved_outfits') || '[]');
+let savedOutfits = [];
 let currentOutfit = [];
 let openCategories = new Set();
 let activeFilter = 'all';
@@ -1531,8 +1531,28 @@ let onlyFavourites = false;
 function saveWardrobe() {
   localStorage.setItem('wardrobe_items', JSON.stringify(wardrobe));
 }
-function saveSavedOutfits() {
-  localStorage.setItem('saved_outfits', JSON.stringify(savedOutfits));
+const JSONBIN_ID = '69b996c2aa77b81da9f2c279';
+const JSONBIN_KEY = '$2a$10$T9JDhBHOhDSUiqVT8b9pW.RoVRnzRFaAe15Snylip0QBXPtsDgZFq';
+
+async function saveSavedOutfits() {
+  await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_ID}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_KEY },
+    body: JSON.stringify({ outfits: savedOutfits })
+  });
+}
+
+async function loadSavedOutfits() {
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_ID}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_KEY }
+    });
+    const data = await res.json();
+    savedOutfits = data.record.outfits || [];
+  } catch(e) {
+    savedOutfits = [];
+  }
+  renderSaved();
 }
 
 // ─────────────────────────────────────────────
@@ -1858,15 +1878,16 @@ function closeSaveModal() {
   document.getElementById('saveModal').classList.remove('open');
 }
 
-function saveOutfit() {
+async function saveOutfit() {
   const name = document.getElementById('outfitNameInput').value.trim();
   if (!name) { document.getElementById('outfitNameInput').focus(); return; }
   const now = new Date();
   const date = now.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
   savedOutfits.unshift({ name, items: [...currentOutfit], date });
-  saveSavedOutfits();
   closeSaveModal();
   renderSaved();
+  showToast('Аутфит сохраняется... 💾');
+  await saveSavedOutfits();
   showToast('Аутфит сохранён! 💾');
 }
 
@@ -1878,10 +1899,10 @@ function loadOutfit(idx) {
   document.querySelector('.main').scrollIntoView({ behavior: 'smooth' });
 }
 
-function deleteOutfit(idx) {
+async function deleteOutfit(idx) {
   savedOutfits.splice(idx, 1);
-  saveSavedOutfits();
   renderSaved();
+  await saveSavedOutfits();
   showToast('Аутфит удалён');
 }
 
@@ -2110,6 +2131,7 @@ document.getElementById('confirmDeleteModal').addEventListener('click', e => {
 // INIT
 // ─────────────────────────────────────────────
 render();
+loadSavedOutfits();
 </script>
 </body>
 </html>
