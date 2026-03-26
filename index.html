@@ -1533,8 +1533,14 @@ const SEED_WARDROBE = [
 ];
 
 // Загружаем из localStorage, если есть — иначе берём seed
-// Clear old wardrobe data from previous version
-if (!localStorage.getItem('wardrobe_v4')) { localStorage.removeItem('wardrobe_items'); localStorage.setItem('wardrobe_v4','1'); }
+// Автоматический сброс: если SEED изменился — мержим новые вещи с пользовательскими
+const SEED_HASH = SEED_WARDROBE.reduce((acc, i) => acc + i.id, 0).toString();
+if (localStorage.getItem('seed_hash') !== SEED_HASH) {
+  const saved = JSON.parse(localStorage.getItem('wardrobe_items') || 'null');
+  const userAdded = saved ? saved.filter(i => !SEED_WARDROBE.find(s => s.id === i.id)) : [];
+  localStorage.setItem('wardrobe_items', JSON.stringify([...SEED_WARDROBE.map(i => ({...i})), ...userAdded]));
+  localStorage.setItem('seed_hash', SEED_HASH);
+}
 let wardrobe = JSON.parse(localStorage.getItem('wardrobe_items') || 'null') || SEED_WARDROBE.map(i => ({...i}));
 let savedOutfits = JSON.parse(localStorage.getItem('saved_outfits') || '[]');
 let currentOutfit = [];
