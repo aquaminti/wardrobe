@@ -1533,15 +1533,10 @@ const SEED_WARDROBE = [
 ];
 
 // Загружаем из localStorage, если есть — иначе берём seed
-// Автоматический сброс: если SEED изменился — мержим новые вещи с пользовательскими
-const SEED_HASH = SEED_WARDROBE.reduce((acc, i) => acc + i.id, 0).toString();
-if (localStorage.getItem('seed_hash') !== SEED_HASH) {
-  const saved = JSON.parse(localStorage.getItem('wardrobe_items') || 'null');
-  const userAdded = saved ? saved.filter(i => !SEED_WARDROBE.find(s => s.id === i.id)) : [];
-  localStorage.setItem('wardrobe_items', JSON.stringify([...SEED_WARDROBE.map(i => ({...i})), ...userAdded]));
-  localStorage.setItem('seed_hash', SEED_HASH);
-}
-let wardrobe = JSON.parse(localStorage.getItem('wardrobe_items') || 'null') || SEED_WARDROBE.map(i => ({...i}));
+// При каждом запуске: берём SEED за основу, добавляем пользовательские вещи поверх
+const _saved = JSON.parse(localStorage.getItem('wardrobe_items') || 'null');
+const _userAdded = _saved ? _saved.filter(i => !SEED_WARDROBE.find(s => s.id === i.id)) : [];
+let wardrobe = [...SEED_WARDROBE.map(i => ({...i})), ..._userAdded];
 let savedOutfits = JSON.parse(localStorage.getItem('saved_outfits') || '[]');
 let currentOutfit = [];
 let openCategories = new Set();
